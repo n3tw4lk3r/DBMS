@@ -18,18 +18,51 @@ std::string Parser::normalize(const std::string& token) {
     return result;
 }
 
-std::vector<std::string> Parser::tokenize(const std::string& query) {
+std::vector<std::string> tokenize(const std::string& input) {
     std::vector<std::string> tokens;
+    std::string current;
+    bool in_string = false;
 
-    std::stringstream ss(query);
-    std::string token;
-
-    while (ss >> token) {
-        token = normalize(token);
-
-        if (!token.empty()) {
-            tokens.push_back(token);
+    for (char ch : input) {
+        if (ch == '"') {
+            if (in_string) {
+                tokens.push_back(current);
+                current.clear();
+                in_string = false;
+            } else {
+                in_string = true;
+            }
+            continue;
         }
+
+        if (in_string) {
+            current += ch;
+            continue;
+        }
+
+        if (std::isspace(ch)) {
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+            continue;
+        }
+
+        if (ch == ';') {
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+
+            tokens.push_back(";");
+            continue;
+        }
+
+        current += ch;
+    }
+
+    if (!current.empty()) {
+        tokens.push_back(current);
     }
 
     return tokens;
