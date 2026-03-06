@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "catalog/system.hpp"
 #include "sqlparser/parser.hpp"
@@ -18,6 +19,20 @@ static void execute(System& system, const Command& cmd) {
         system.useDatabase(cmd.database_name);
         std::cout << "Using database " << cmd.database_name << '\n';
         break;
+
+    case CommandType::kCreateTable: {
+        auto db = system.getCurrentDatabase();
+
+        if (!db) {
+            std::cout << "No database selected\n";
+            break;
+        }
+
+        db->createTable(cmd.table_name, cmd.columns);
+
+        std::cout << "Table " << cmd.table_name << " created\n";
+        break;
+    }
 
     default:
         std::cout << "Unknown command\n";

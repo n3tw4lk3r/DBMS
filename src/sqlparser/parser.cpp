@@ -1,7 +1,5 @@
 #include "sqlparser/parser.hpp"
 
-#include <sstream>
-
 namespace dbms {
 
 std::string Parser::normalize(const std::string& token) {
@@ -18,12 +16,14 @@ std::string Parser::normalize(const std::string& token) {
     return result;
 }
 
-std::vector<std::string> tokenize(const std::string& input) {
+std::vector<std::string> Parser::tokenize(const std::string& input) {
     std::vector<std::string> tokens;
     std::string current;
     bool in_string = false;
 
-    for (char ch : input) {
+    for (size_t i = 0; i < input.size(); ++i) {
+        char ch = input[i];
+
         if (ch == '"') {
             if (in_string) {
                 tokens.push_back(current);
@@ -48,13 +48,13 @@ std::vector<std::string> tokenize(const std::string& input) {
             continue;
         }
 
-        if (ch == ';') {
+        if (ch == '(' || ch == ')' || ch == ',' || ch == ';') {
             if (!current.empty()) {
                 tokens.push_back(current);
                 current.clear();
             }
 
-            tokens.push_back(";");
+            tokens.emplace_back(1, ch);
             continue;
         }
 
@@ -112,9 +112,69 @@ Command Parser::parseCreate(const std::vector<std::string>& tokens) {
     }
 
     if (tokens[1] == "TABLE") {
-        cmd.type = CommandType::kCreateTable;
-        cmd.table_name = tokens[2];
+        return parseCreateTable(tokens);
+    }
+
+    return cmd;
+}
+
+Command Parser::parseCreateTable(const std::vector<std::string>& tokens) {
+    Command cmd;
+
+    cmd.type = CommandType::kCreateTable;
+
+    if (tokens.size() < 4) {
         return cmd;
+    }
+
+    cmd.table_name = tokens[2];
+    size_t pos = 3;
+
+    if (tokens[pos] != "(") {
+        return cmd;
+    }
+
+    ++pos;
+
+    while (pos < tokens.size()) {
+        if (tokens[pos] == ")") {
+            break;
+        }
+
+        ColumnSchema column;
+        column.name = tokens[pos];
+        ++pos;
+        std::string type = tokens[pos];
+        ++pos;
+
+        if (type == "INT") {
+            column.type = ColumnType::kInt;
+        } else if (type == "STRING") {
+            column.type = ColumnType::kString;
+        }
+
+        while (pos < tokens.size()) {
+            if (tokens[pos] == "," || tokens[pos] == ")") {
+                break;
+            }
+
+            if (tokens[pos] == "NOT_NULL") {
+                column.not_null = true;
+            }
+
+            if (tokens[pos] == "INDEXED") {
+                column.indexed = true;
+                column.not_null = true;
+            }
+
+            ++pos;
+        }
+
+        cmd.columns.push_back(column);
+
+        if (tokens[pos] == ",") {
+            ++pos;
+        }
     }
 
     return cmd;

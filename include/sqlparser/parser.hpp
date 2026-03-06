@@ -17,6 +17,7 @@ private:
 
     Command parseCreate(const std::vector<std::string>& tokens);
     Command parseUse(const std::vector<std::string>& tokens);
+    Command parseCreateTable(const std::vector<std::string>& tokens);
 };
 
 } // namespace dbms
