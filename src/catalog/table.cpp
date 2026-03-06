@@ -16,8 +16,16 @@ void Table::insertRow(const std::vector<Value>& row) {
     rows.push_back(row);
 }
 
-const std::vector<std::vector<Value>> Table::getRows() const {
+const std::vector<std::vector<Value>>& Table::getRows() const {
     return rows;
+}
+
+std::vector<std::vector<Value>>& Table::getRowsMutable() {
+    return rows;
+}
+
+const std::vector<ColumnSchema>& Table::getSchema() const {
+    return schema;
 }
 
 } // namespace dbms

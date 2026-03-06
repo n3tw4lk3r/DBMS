@@ -14,7 +14,10 @@ public:
           const std::vector<ColumnSchema>& schema);
     const std::string getName() const;
     void insertRow(const std::vector<Value>& row);
-    const std::vector<std::vector<Value>> getRows() const;
+
+    const std::vector<std::vector<Value>>& getRows() const;
+    std::vector<std::vector<Value>>& getRowsMutable();
+    const std::vector<ColumnSchema>& getSchema() const;
 
 private:
     std::string name;

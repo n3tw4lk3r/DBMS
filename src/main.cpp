@@ -2,47 +2,16 @@
 #include <string>
 
 #include "catalog/system.hpp"
+#include "execution/executor.hpp"
 #include "sqlparser/parser.hpp"
 #include "sqlparser/query_buffer.hpp"
 
-using namespace dbms;
-
-static void execute(System& system, const Command& cmd) {
-    switch (cmd.type) {
-
-    case CommandType::kCreateDatabase:
-        system.createDatabase(cmd.database_name);
-        std::cout << "Database " << cmd.database_name << " created\n";
-        break;
-
-    case CommandType::kUseDatabase:
-        system.useDatabase(cmd.database_name);
-        std::cout << "Using database " << cmd.database_name << '\n';
-        break;
-
-    case CommandType::kCreateTable: {
-        auto db = system.getCurrentDatabase();
-
-        if (!db) {
-            std::cout << "No database selected\n";
-            break;
-        }
-
-        db->createTable(cmd.table_name, cmd.columns);
-
-        std::cout << "Table " << cmd.table_name << " created\n";
-        break;
-    }
-
-    default:
-        std::cout << "Unknown command\n";
-        break;
-    }
-}
-
 int main() {
+    using namespace dbms;
+
     System system;
     Parser parser;
+    Executor executor(system);
     QueryBuffer buffer;
 
     std::string line;
@@ -65,7 +34,7 @@ int main() {
         auto queries = buffer.append(line);
         for (const auto& query : queries) {
             auto cmd = parser.parse(query);
-            execute(system, cmd);
+            executor.execute(cmd);
         }
     }
 }
