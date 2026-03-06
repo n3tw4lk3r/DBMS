@@ -4,6 +4,20 @@
 
 namespace dbms {
 
+std::string Parser::normalize(const std::string& token) {
+    std::string result;
+
+    for (char ch : token) {
+        if (ch == '(' || ch == ')' || ch == ',' || ch == ';') {
+            continue;
+        }
+
+        result += ch;
+    }
+
+    return result;
+}
+
 std::vector<std::string> Parser::tokenize(const std::string& query) {
     std::vector<std::string> tokens;
 
@@ -11,7 +25,11 @@ std::vector<std::string> Parser::tokenize(const std::string& query) {
     std::string token;
 
     while (ss >> token) {
-        tokens.push_back(token);
+        token = normalize(token);
+
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
     }
 
     return tokens;

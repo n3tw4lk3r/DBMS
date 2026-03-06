@@ -2,6 +2,7 @@
 
 #include "catalog/system.hpp"
 #include "sqlparser/parser.hpp"
+#include "sqlparser/query_buffer.hpp"
 
 using namespace dbms;
 
@@ -27,6 +28,7 @@ static void execute(System& system, const Command& cmd) {
 int main() {
     System system;
     Parser parser;
+    QueryBuffer buffer;
 
     std::string line;
     bool should_exit = false;
@@ -45,8 +47,10 @@ int main() {
             break;
         }
 
-        auto cmd = parser.parse(line);
-
-        execute(system, cmd);
+        auto queries = buffer.append(line);
+        for (const auto& query : queries) {
+            auto cmd = parser.parse(query);
+            execute(system, cmd);
+        }
     }
 }
