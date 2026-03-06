@@ -16,7 +16,14 @@ enum class CommandType {
     kDropTable,
     kInsert,
     kSelect,
+    kUpdate,
+    kDelete,
     kUnknown
+};
+
+struct Assignment {
+    std::string column;
+    Value value;
 };
 
 struct Command {
@@ -26,9 +33,13 @@ struct Command {
     std::string table_name;
 
     std::vector<ColumnSchema> columns;
-
     std::vector<std::string> column_names;
-    std::vector<Value> values;
+
+    std::vector<std::vector<Value>> values;
+
+    std::vector<Assignment> assignments;
+
+    std::vector<std::string> select_columns;
 };
 
 } // namespace dbms

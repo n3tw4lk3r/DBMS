@@ -79,8 +79,28 @@ Command Parser::parse(const std::string& query) {
         return parseCreate(tokens);
     }
 
+    if (tokens[0] == "DROP") {
+        return parseDrop(tokens);
+    }
+
     if (tokens[0] == "USE") {
         return parseUse(tokens);
+    }
+
+    if (tokens[0] == "INSERT") {
+        return parseInsert(tokens);
+    }
+
+    if (tokens[0] == "SELECT") {
+        return parseSelect(tokens);
+    }
+
+    if (tokens[0] == "UPDATE") {
+        return parseUpdate(tokens);
+    }
+
+    if (tokens[0] == "DELETE") {
+        return parseDelete(tokens);
     }
 
     return {};
@@ -88,12 +108,129 @@ Command Parser::parse(const std::string& query) {
 
 Command Parser::parseUse(const std::vector<std::string>& tokens) {
     Command cmd;
-
     cmd.type = CommandType::kUseDatabase;
 
     if (tokens.size() >= 2) {
         cmd.database_name = tokens[1];
     }
+
+    return cmd;
+}
+
+Command Parser::parseDrop(const std::vector<std::string>& tokens) {
+    Command cmd;
+
+    if (tokens.size() < 3) {
+        return cmd;
+    }
+
+    if (tokens[1] == "DATABASE") {
+        cmd.type = CommandType::kDropDatabase;
+        cmd.database_name = tokens[2];
+    }
+
+    if (tokens[1] == "TABLE") {
+        cmd.type = CommandType::kDropTable;
+        cmd.table_name = tokens[2];
+    }
+
+    return cmd;
+}
+
+Command Parser::parseInsert(const std::vector<std::string>& tokens) {
+    Command cmd;
+    cmd.type = CommandType::kInsert;
+
+    size_t pos = 2;
+    cmd.table_name = tokens[pos];
+    ++pos;
+
+    if (tokens[pos] == "(") {
+        ++pos;
+
+        while (tokens[pos] != ")") {
+            if (tokens[pos] != ",") {
+                cmd.column_names.push_back(tokens[pos]);
+            }
+            ++pos;
+        }
+        ++pos;
+    }
+
+    if (tokens[pos] == "VALUE") {
+        ++pos;
+    }
+
+    while (pos < tokens.size()) {
+        if (tokens[pos] == "(") {
+            ++pos;
+            std::vector<Value> row;
+
+            while (tokens[pos] != ")") {
+                if (tokens[pos] != ",") {
+                    row.push_back(parseValue(tokens[pos]));
+                }
+                ++pos;
+            }
+
+            cmd.values.push_back(row);
+        }
+
+        ++pos;
+    }
+
+    return cmd;
+}
+
+Command Parser::parseSelect(const std::vector<std::string>& tokens) {
+    Command cmd;
+    cmd.type = CommandType::kSelect;
+
+    size_t pos = 1;
+    while (tokens[pos] != "FROM") {
+        if (tokens[pos] != ",") {
+            cmd.select_columns.push_back(tokens[pos]);
+        }
+        ++pos;
+    }
+
+    ++pos;
+    cmd.table_name = tokens[pos];
+
+    return cmd;
+}
+
+Command Parser::parseUpdate(const std::vector<std::string>& tokens) {
+    Command cmd;
+    cmd.type = CommandType::kUpdate;
+    cmd.table_name = tokens[1];
+
+    size_t pos = 3;
+    while (pos < tokens.size()) {
+        if (tokens[pos] == "WHERE") {
+            break;
+        }
+
+        if (tokens[pos] != ",") {
+            Assignment a;
+
+            a.column = tokens[pos];
+            pos += 2;
+            a.value = parseValue(tokens[pos]);
+
+            cmd.assignments.push_back(a);
+        }
+
+        ++pos;
+    }
+
+    return cmd;
+}
+
+Command Parser::parseDelete(const std::vector<std::string>& tokens) {
+    Command cmd;
+    cmd.type = CommandType::kDelete;
+    cmd.table_name = tokens[2];
 
     return cmd;
 }
@@ -120,7 +257,6 @@ Command Parser::parseCreate(const std::vector<std::string>& tokens) {
 
 Command Parser::parseCreateTable(const std::vector<std::string>& tokens) {
     Command cmd;
-
     cmd.type = CommandType::kCreateTable;
 
     if (tokens.size() < 4) {
@@ -178,6 +314,14 @@ Command Parser::parseCreateTable(const std::vector<std::string>& tokens) {
     }
 
     return cmd;
+}
+
+Value Parser::parseValue(const std::string& token) {
+    if (!token.empty() && std::isdigit(token[0])) {
+        return Value(std::stoi(token));
+    }
+
+    return Value(token);
 }
 
 } // namespace dbms
