@@ -102,13 +102,18 @@ void Executor::executeSelect(const Command& cmd) {
     }
 
     const auto& rows = table->getRows();
+    const auto& schema = table->getSchema();
     for (const auto& row : rows) {
+        if (!matchConditions(cmd.conditions, row, schema)) {
+            continue;
+        }
+
         for (size_t i = 0; i < row.size(); ++i) {
             const auto& v = row[i];
+
             if (v.getType() == Value::Type::kInt) {
                 std::cout << v.asInt();
-            }
-            else {
+            } else {
                 std::cout << v.asString();
             }
 
@@ -123,11 +128,19 @@ void Executor::executeSelect(const Command& cmd) {
 
 void Executor::executeUpdate(const Command& cmd) {
     auto db = system.getCurrentDatabase();
+    if (!db) {
+        std::cout << "No database selected\n";
+        return;
+    }
+
     auto table = db->getTable(cmd.table_name);
+    if (!table) {
+        std::cout << "Table not found\n";
+        return;
+    }
 
     auto& rows = table->getRowsMutable();
     const auto& schema = table->getSchema();
-
     int updated = 0;
     for (auto& row : rows) {
         if (!matchConditions(cmd.conditions, row, schema)) {
@@ -150,30 +163,43 @@ void Executor::executeUpdate(const Command& cmd) {
 
 void Executor::executeDelete(const Command& cmd) {
     auto db = system.getCurrentDatabase();
+    if (!db) {
+        std::cout << "No database selected\n";
+        return;
+    }
+
     auto table = db->getTable(cmd.table_name);
+    if (!table) {
+        std::cout << "Table not found\n";
+        return;
+    }
+
     auto& rows = table->getRowsMutable();
     const auto& schema = table->getSchema();
-
     size_t before = rows.size();
+
     rows.erase(
         std::remove_if(
             rows.begin(),
             rows.end(),
             [&](const auto& row) {
                 return matchConditions(cmd.conditions, row, schema);
-        }),
+            }),
         rows.end());
 
     std::cout << before - rows.size() << " rows deleted\n";
 }
 
-bool Executor::matchConditions(
-    const std::vector<Condition>& conds,
-    const std::vector<Value>& row,
-    const std::vector<ColumnSchema>& schema) {
+bool Executor::matchConditions(const std::vector<Condition>& conds,
+                               const std::vector<Value>& row,
+                               const std::vector<ColumnSchema>& schema) {
+    if (conds.empty()) {
+        return true;
+    }
 
     for (const auto& cond : conds) {
         int idx = -1;
+
         for (size_t i = 0; i < schema.size(); ++i) {
             if (schema[i].name == cond.left) {
                 idx = i;
@@ -186,16 +212,22 @@ bool Executor::matchConditions(
         }
 
         const auto& v = row[idx];
-
+        const auto& r = cond.right;
         if (cond.op == "==") {
+            if (v.getType() != r.getType()) {
+                return false;
+            }
+
             if (v.getType() == Value::Type::kInt) {
-                if (v.asInt() != cond.right.asInt())
+                if (v.asInt() != r.asInt()) {
                     return false;
+                }
             }
 
             if (v.getType() == Value::Type::kString) {
-                if (v.asString() != cond.right.asString())
+                if (v.asString() != r.asString()) {
                     return false;
+                }
             }
         }
     }

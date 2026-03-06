@@ -226,15 +226,18 @@ Command Parser::parseUpdate(const std::vector<std::string>& tokens) {
             break;
         }
 
-        if (tokens[pos] != ",") {
-            Assignment a;
-
-            a.column = tokens[pos];
-            pos += 2;
-            a.value = parseValue(tokens[pos]);
-
-            cmd.assignments.push_back(a);
+        if (tokens[pos] == ",") {
+            ++pos;
+            continue;
         }
+
+        Assignment a;
+
+        a.column = tokens[pos];
+        pos += 2; // skip column and '='
+        a.value = parseValue(tokens[pos]);
+
+        cmd.assignments.push_back(a);
 
         ++pos;
     }
@@ -245,8 +248,16 @@ Command Parser::parseUpdate(const std::vector<std::string>& tokens) {
 Command Parser::parseDelete(const std::vector<std::string>& tokens) {
     Command cmd;
     cmd.type = CommandType::kDelete;
-    cmd.table_name = tokens[2];
 
+    if (tokens.size() < 3) {
+        return cmd;
+    }
+
+    if (tokens[1] != "FROM") {
+        return cmd;
+    }
+
+    cmd.table_name = tokens[2];
     size_t pos = 3;
     if (pos < tokens.size() && tokens[pos] == "WHERE") {
         ++pos;
@@ -355,7 +366,7 @@ std::vector<Condition> Parser::parseConditions(const std::vector<std::string>& t
         ++pos;
         cond.op = tokens[pos];
         ++pos;
-        cond.right = Value(tokens[pos]);
+        cond.right = parseValue(tokens[pos]);
         ++pos;
 
         conditions.push_back(cond);
