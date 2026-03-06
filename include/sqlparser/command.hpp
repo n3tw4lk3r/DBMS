@@ -26,6 +26,17 @@ struct Assignment {
     Value value;
 };
 
+struct Condition {
+    std::string left;
+    std::string op;
+    Value right;
+};
+
+struct SelectColumn {
+    std::string name;
+    std::string alias;
+};
+
 struct Command {
     CommandType type = CommandType::kUnknown;
 
@@ -38,8 +49,8 @@ struct Command {
     std::vector<std::vector<Value>> values;
 
     std::vector<Assignment> assignments;
-
-    std::vector<std::string> select_columns;
+    std::vector<SelectColumn> select_columns;
+    std::vector<Condition> conditions;
 };
 
 } // namespace dbms

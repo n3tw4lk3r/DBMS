@@ -27,6 +27,9 @@ private:
     Command parseDelete(const std::vector<std::string>& tokens);
 
     Value parseValue(const std::string& token);
+
+    std::vector<Condition> parseConditions(const std::vector<std::string>& tokens,
+                                           size_t pos);
 };
 
 } // namespace dbms
