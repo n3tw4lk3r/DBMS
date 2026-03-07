@@ -115,12 +115,14 @@ void Executor::executeInsert(const Command& cmd) {
 
 void Executor::executeSelect(const Command& cmd) {
     auto db = system.getCurrentDatabase();
+
     if (!db) {
         std::cout << "No database selected\n";
         return;
     }
 
     auto table = db->getTable(cmd.table_name);
+
     if (!table) {
         std::cout << "Table not found\n";
         return;
@@ -128,22 +130,63 @@ void Executor::executeSelect(const Command& cmd) {
 
     const auto& rows = table->getRows();
     const auto& schema = table->getSchema();
+
+    if (rows.empty()) {
+        std::cout << "(empty)\n";
+        return;
+    }
+
+    bool select_all = cmd.select_columns.size() == 1 &&
+                      cmd.select_columns[0].name == "*";
     for (const auto& row : rows) {
         if (!matchConditions(cmd.conditions, row, schema)) {
             continue;
         }
 
-        for (size_t i = 0; i < row.size(); ++i) {
-            const auto& v = row[i];
+        if (select_all) {
+            for (size_t i = 0; i < row.size(); ++i) {
+                const auto& v = row[i];
+                if (v.getType() == Value::Type::kInt) {
+                    std::cout << v.asInt();
+                } else if (v.getType() == Value::Type::kString) {
+                    std::cout << v.asString();
+                } else {
+                    std::cout << "NULL";
+                }
 
-            if (v.getType() == Value::Type::kInt) {
-                std::cout << v.asInt();
-            } else {
-                std::cout << v.asString();
+                if (i + 1 != row.size()) {
+                    std::cout << ", ";
+                }
             }
 
-            if (i + 1 != row.size()) {
-                std::cout << ", ";
+        } else {
+            for (size_t c = 0; c < cmd.select_columns.size(); ++c) {
+                const auto& col = cmd.select_columns[c];
+                int idx = -1;
+                for (size_t i = 0; i < schema.size(); ++i) {
+                    if (schema[i].name == col.name) {
+                        idx = i;
+                        break;
+                    }
+                }
+
+                if (idx == -1) {
+                    std::cout << "Unknown column\n";
+                    return;
+                }
+
+                const auto& v = row[idx];
+                if (v.getType() == Value::Type::kInt) {
+                    std::cout << v.asInt();
+                } else if (v.getType() == Value::Type::kString) {
+                    std::cout << v.asString();
+                } else {
+                    std::cout << "NULL";
+                }
+
+                if (c + 1 != cmd.select_columns.size()) {
+                    std::cout << ", ";
+                }
             }
         }
 
