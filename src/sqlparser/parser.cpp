@@ -40,6 +40,23 @@ std::vector<std::string> Parser::tokenize(const std::string& input) {
             continue;
         }
 
+        if (!in_string) {
+            if (i + 1 < input.size()) {
+                std::string two {ch, input[i + 1]};
+                if (two == "==" || two == "!=" || two == "<=" || two == ">=") {
+                    if (!current.empty()) {
+                        tokens.push_back(current);
+                        current.clear();
+                    }
+
+                    tokens.push_back(two);
+                    ++i;
+                    continue;
+                }
+            }
+
+        }
+
         if (std::isspace(ch)) {
             if (!current.empty()) {
                 tokens.push_back(current);

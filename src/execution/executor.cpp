@@ -213,21 +213,65 @@ bool Executor::matchConditions(const std::vector<Condition>& conds,
 
         const auto& v = row[idx];
         const auto& r = cond.right;
-        if (cond.op == "==") {
-            if (v.getType() != r.getType()) {
+
+        if (v.getType() != r.getType()) {
+            return false;
+        }
+
+        if (v.getType() == Value::Type::kInt) {
+            int a = v.asInt();
+            int b = r.asInt();
+
+            if (cond.op == "==" && !(a == b)) {
                 return false;
             }
 
-            if (v.getType() == Value::Type::kInt) {
-                if (v.asInt() != r.asInt()) {
-                    return false;
-                }
+            if (cond.op == "!=" && !(a != b)) {
+                return false;
             }
 
-            if (v.getType() == Value::Type::kString) {
-                if (v.asString() != r.asString()) {
-                    return false;
-                }
+            if (cond.op == "<"  && !(a < b)) {
+                return false;
+            }
+
+            if (cond.op == ">"  && !(a > b)) {
+                return false;
+            }
+
+            if (cond.op == "<=" && !(a <= b)) {
+                return false;
+            }
+
+            if (cond.op == ">=" && !(a >= b)) {
+                return false;
+            }
+
+        } else if (v.getType() == Value::Type::kString) {
+            const auto& a = v.asString();
+            const auto& b = r.asString();
+
+            if (cond.op == "==" && !(a == b)) {
+                return false;
+            }
+
+            if (cond.op == "!=" && !(a != b)) {
+                return false;
+            }
+
+            if (cond.op == "<"  && !(a < b)) {
+                return false;
+            }
+
+            if (cond.op == ">"  && !(a > b)) {
+                return false;
+            }
+
+            if (cond.op == "<=" && !(a <= b)) {
+                return false;
+            }
+
+            if (cond.op == ">=" && !(a >= b)) {
+                return false;
             }
         }
     }
