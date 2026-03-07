@@ -24,6 +24,14 @@ void Executor::execute(const Command& cmd) {
         executeCreateTable(cmd);
         break;
 
+    case CommandType::kDropDatabase:
+        executeDropDatabase(cmd);
+        break;
+
+    case CommandType::kDropTable:
+        executeDropTable(cmd);
+        break;
+
     case CommandType::kInsert:
         executeInsert(cmd);
         break;
@@ -54,6 +62,23 @@ void Executor::executeCreateDatabase(const Command& cmd) {
 void Executor::executeUseDatabase(const Command& cmd) {
     system.useDatabase(cmd.database_name);
     std::cout << "Using database " << cmd.database_name << "\n";
+}
+
+void Executor::executeDropDatabase(const Command& cmd) {
+    // nothing interesting here so far
+    std::cout << "Database dropped: " << cmd.database_name << "\n";
+}
+
+void Executor::executeDropTable(const Command& cmd) {
+    // also nothing interesting here yet
+    auto db = system.getCurrentDatabase();
+
+    if (!db) {
+        std::cout << "No database selected\n";
+        return;
+    }
+
+    std::cout << "Table dropped: " << cmd.table_name << "\n";
 }
 
 void Executor::executeCreateTable(const Command& cmd) {
