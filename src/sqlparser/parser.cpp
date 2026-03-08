@@ -271,25 +271,25 @@ Command Parser::parseUpdate(const std::vector<std::string>& tokens) {
 }
 
 Command Parser::parseDelete(const std::vector<std::string>& tokens) {
-    Command command;
-    command.type = CommandType::kDelete;
+    Command cmd;
+    cmd.type = CommandType::kDelete;
 
     if (tokens.size() < 3) {
-        return command;
+        return cmd;
     }
 
     if (tokens[1] != "FROM") {
-        return command;
+        return cmd;
     }
 
-    command.table_name = tokens[2];
+    cmd.table_name = tokens[2];
     size_t pos = 3;
     if (pos < tokens.size() && tokens[pos] == "WHERE") {
         ++pos;
-        command.conditions = parseConditions(tokens, pos);
+        cmd.conditions = parseConditions(tokens, pos);
     }
 
-    return command;
+    return cmd;
 }
 
 Command Parser::parseCreate(const std::vector<std::string>& tokens) {
