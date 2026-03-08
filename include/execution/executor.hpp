@@ -25,7 +25,7 @@ private:
     void executeUpdate(const Command& cmd);
     void executeDelete(const Command& cmd);
 
-    bool matchConditions(const std::vector<Condition>& conds,
+    bool matchConditions(const std::vector<Condition>& conditions,
                          const std::vector<Value>& row,
                          const std::vector<ColumnSchema>& schema);
     int findColumnIndex(const std::vector<ColumnSchema>& schema, const std::string& name);

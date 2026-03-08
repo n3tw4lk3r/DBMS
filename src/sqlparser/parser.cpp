@@ -271,25 +271,25 @@ Command Parser::parseUpdate(const std::vector<std::string>& tokens) {
 }
 
 Command Parser::parseDelete(const std::vector<std::string>& tokens) {
-    Command cmd;
-    cmd.type = CommandType::kDelete;
+    Command command;
+    command.type = CommandType::kDelete;
 
     if (tokens.size() < 3) {
-        return cmd;
+        return command;
     }
 
     if (tokens[1] != "FROM") {
-        return cmd;
+        return command;
     }
 
-    cmd.table_name = tokens[2];
+    command.table_name = tokens[2];
     size_t pos = 3;
     if (pos < tokens.size() && tokens[pos] == "WHERE") {
         ++pos;
-        cmd.conditions = parseConditions(tokens, pos);
+        command.conditions = parseConditions(tokens, pos);
     }
 
-    return cmd;
+    return command;
 }
 
 Command Parser::parseCreate(const std::vector<std::string>& tokens) {
@@ -389,16 +389,16 @@ std::vector<Condition> Parser::parseConditions(const std::vector<std::string>& t
                                                size_t pos) {
     std::vector<Condition> conditions;
     while (pos < tokens.size()) {
-        Condition cond;
-        cond.left = parseOperand(tokens[pos]);
+        Condition condition;
+        condition.lhs = parseOperand(tokens[pos]);
         ++pos;
 
         std::string op = tokens[pos];
         ++pos;
 
         if (op == "BETWEEN") {
-            cond.op = "BETWEEN";
-            cond.right = parseOperand(tokens[pos]);
+            condition.operator_type = "BETWEEN";
+            condition.rhs = parseOperand(tokens[pos]);
             ++pos;
 
             if (tokens[pos] != "AND") {
@@ -407,21 +407,21 @@ std::vector<Condition> Parser::parseConditions(const std::vector<std::string>& t
 
             ++pos;
 
-            cond.second = parseOperand(tokens[pos]);
+            condition.range_end = parseOperand(tokens[pos]);
             ++pos;
 
         } else if (op == "LIKE") {
-            cond.op = "LIKE";
-            cond.right = parseOperand(tokens[pos]);
+            condition.operator_type = "LIKE";
+            condition.rhs = parseOperand(tokens[pos]);
             ++pos;
 
         } else {
-            cond.op = op;
-            cond.right = parseOperand(tokens[pos]);
+            condition.operator_type = op;
+            condition.rhs = parseOperand(tokens[pos]);
             ++pos;
         }
 
-        conditions.push_back(cond);
+        conditions.push_back(condition);
     }
 
     return conditions;
@@ -430,10 +430,7 @@ std::vector<Condition> Parser::parseConditions(const std::vector<std::string>& t
 Operand Parser::parseOperand(const std::string& token) {
     Operand op;
 
-    if (token.size() >= 2 &&
-        token.front() == '"' &&
-        token.back() == '"') {
-
+    if (token.size() >= 2 && token.front() == '"' && token.back() == '"') {
         op.value = Value(token.substr(1, token.size() - 2));
         return op;
     }

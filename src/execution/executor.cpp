@@ -216,10 +216,10 @@ void Executor::executeUpdate(const Command& cmd) {
             continue;
         }
 
-        for (const auto& a : cmd.assignments) {
+        for (const auto& assignment : cmd.assignments) {
             for (size_t i = 0; i < schema.size(); ++i) {
-                if (schema[i].name == a.column) {
-                    row[i] = a.value;
+                if (schema[i].name == assignment.column) {
+                    row[i] = assignment.value;
                 }
             }
         }
@@ -259,33 +259,33 @@ void Executor::executeDelete(const Command& cmd) {
     std::cout << before - rows.size() << " rows deleted\n";
 }
 
-bool Executor::matchConditions(const std::vector<Condition>& conds,
+bool Executor::matchConditions(const std::vector<Condition>& conditions,
                                const std::vector<Value>& row,
                                const std::vector<ColumnSchema>& schema) {
-    if (conds.empty()) {
+    if (conditions.empty()) {
         return true;
     }
 
-    for (const auto& cond : conds) {
-        Value left = resolveOperand(cond.left, row, schema);
-        Value right = resolveOperand(cond.right, row, schema);
+    for (const auto& condition : conditions) {
+        Value left = resolveOperand(condition.lhs, row, schema);
+        Value right = resolveOperand(condition.rhs, row, schema);
 
-        if (cond.op == "BETWEEN") {
-            Value second = resolveOperand(cond.second, row, schema);
+        if (condition.operator_type == "BETWEEN") {
+            Value second = resolveOperand(condition.range_end, row, schema);
             if (!betweenValues(left, right, second)) {
                 return false;
             }
             continue;
         }
 
-        if (cond.op == "LIKE") {
+        if (condition.operator_type == "LIKE") {
             if (!likeValues(left, right)) {
                 return false;
             }
             continue;
         }
 
-        if (!compareValues(left, right, cond.op)) {
+        if (!compareValues(left, right, condition.operator_type)) {
             return false;
         }
     }
@@ -303,19 +303,19 @@ int Executor::findColumnIndex(const std::vector<ColumnSchema>& schema, const std
     return -1;
 }
 
-Value Executor::resolveOperand(const Operand& op, const std::vector<Value>& row,
-                     const std::vector<ColumnSchema> schema) {
-    if (op.is_column) {
-        int idx = findColumnIndex(schema, op.column);
+Value Executor::resolveOperand(const Operand& operand, const std::vector<Value>& row,
+                               const std::vector<ColumnSchema> schema) {
+    if (operand.is_column) {
+        int idx = findColumnIndex(schema, operand.column);
         if (idx < 0 || idx >= static_cast<int>(row.size())) {
             return Value();
         }
         return row[idx];
     }
-    return op.value;
+    return operand.value;
 }
 
-bool Executor::compareValues(const Value& a, const Value& b, const std::string& op) {
+bool Executor::compareValues(const Value& a, const Value& b, const std::string& operator_str) {
     if (a.getType() != b.getType()) {
         return false;
     }
@@ -324,44 +324,44 @@ bool Executor::compareValues(const Value& a, const Value& b, const std::string& 
         int x = a.asInt();
         int y = b.asInt();
 
-        if (op == "==") {
+        if (operator_str == "==") {
             return x == y;
         }
-        if (op == "!=") {
+        if (operator_str == "!=") {
             return x != y;
         }
-        if (op == "<") {
+        if (operator_str == "<") {
             return x < y;
         }
-        if (op == ">") {
+        if (operator_str == ">") {
             return x > y;
         }
-        if (op == "<=") {
+        if (operator_str == "<=") {
             return x <= y;
         }
-        if (op == ">=") {
+        if (operator_str == ">=") {
             return x >= y;
         }
     } else if (a.getType() == Value::Type::kString) {
         const auto& x = a.asString();
         const auto& y = b.asString();
 
-        if (op == "==") {
+        if (operator_str == "==") {
             return x == y;
         }
-        if (op == "!=") {
+        if (operator_str == "!=") {
             return x != y;
         }
-        if (op == "<") {
+        if (operator_str == "<") {
             return x < y;
         }
-        if (op == ">") {
+        if (operator_str == ">") {
             return x > y;
         }
-        if (op == "<=") {
+        if (operator_str == "<=") {
             return x <= y;
         }
-        if (op == ">=") {
+        if (operator_str == ">=") {
             return x >= y;
         }
     }

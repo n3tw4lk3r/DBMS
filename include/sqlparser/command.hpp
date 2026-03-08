@@ -33,10 +33,10 @@ struct Operand {
 };
 
 struct Condition {
-    std::string op;
-    Operand left;
-    Operand right;
-    Operand second;
+    std::string operator_type;
+    Operand lhs;
+    Operand rhs;
+    Operand range_end;
 };
 
 struct SelectColumn {
