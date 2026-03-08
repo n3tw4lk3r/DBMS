@@ -150,7 +150,7 @@ Command Parser::parseDrop(const std::vector<std::string>& tokens) {
 
     if (tokens[1] == "TABLE") {
         cmd.type = CommandType::kDropTable;
-        cmd.table_name = tokens[2];
+        parseTableName(tokens[2], cmd.database_name, cmd.table_name);
     }
 
     return cmd;
@@ -161,12 +161,11 @@ Command Parser::parseInsert(const std::vector<std::string>& tokens) {
     cmd.type = CommandType::kInsert;
 
     size_t pos = 2;
-    cmd.table_name = tokens[pos];
+    parseTableName(tokens[pos], cmd.database_name, cmd.table_name);
     ++pos;
 
     if (tokens[pos] == "(") {
         ++pos;
-
         while (tokens[pos] != ")") {
             if (tokens[pos] != ",") {
                 cmd.column_names.push_back(tokens[pos]);
@@ -228,8 +227,10 @@ Command Parser::parseSelect(const std::vector<std::string>& tokens) {
         }
         ++pos;
     }
-    cmd.table_name = tokens[pos];
+
+    parseTableName(tokens[pos], cmd.database_name, cmd.table_name);
     ++pos;
+
     if (pos < tokens.size() && tokens[pos] == "WHERE") {
         ++pos;
         cmd.conditions = parseConditions(tokens, pos);
@@ -241,7 +242,7 @@ Command Parser::parseSelect(const std::vector<std::string>& tokens) {
 Command Parser::parseUpdate(const std::vector<std::string>& tokens) {
     Command cmd;
     cmd.type = CommandType::kUpdate;
-    cmd.table_name = tokens[1];
+    parseTableName(tokens[1], cmd.database_name, cmd.table_name);
 
     size_t pos = 3;
     while (pos < tokens.size()) {
@@ -282,7 +283,7 @@ Command Parser::parseDelete(const std::vector<std::string>& tokens) {
         return cmd;
     }
 
-    cmd.table_name = tokens[2];
+    parseTableName(tokens[2], cmd.database_name, cmd.table_name);
     size_t pos = 3;
     if (pos < tokens.size() && tokens[pos] == "WHERE") {
         ++pos;
@@ -320,7 +321,7 @@ Command Parser::parseCreateTable(const std::vector<std::string>& tokens) {
         return cmd;
     }
 
-    cmd.table_name = tokens[2];
+    parseTableName(tokens[2], cmd.database_name, cmd.table_name);
     size_t pos = 3;
 
     if (tokens[pos] != "(") {
@@ -444,6 +445,17 @@ Operand Parser::parseOperand(const std::string& token) {
     op.column = token;
 
     return op;
+}
+
+void Parser::parseTableName(const std::string& fullName, std::string& database_name, std::string& table_name) {
+    size_t dotPos = fullName.find('.');
+    if (dotPos != std::string::npos) {
+        database_name = fullName.substr(0, dotPos);
+        table_name = fullName.substr(dotPos + 1);
+    } else {
+        table_name = fullName;
+        database_name.clear();
+    }
 }
 
 } // namespace dbms

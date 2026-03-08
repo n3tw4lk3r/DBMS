@@ -30,6 +30,7 @@ private:
     std::vector<Condition> parseConditions(const std::vector<std::string>& tokens,
                                            size_t pos);
     Operand parseOperand(const std::string& token);
+    void parseTableName(const std::string& fullName, std::string& database_name, std::string& table_name);
 };
 
 } // namespace dbms

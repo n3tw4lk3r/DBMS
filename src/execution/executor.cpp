@@ -72,7 +72,13 @@ void Executor::executeDropDatabase(const Command& cmd) {
 
 void Executor::executeDropTable(const Command& cmd) {
     // also nothing interesting here yet
-    auto db = system.getCurrentDatabase();
+    Database* db = nullptr;
+
+    if (!cmd.database_name.empty()) {
+        db = system.getDatabase(cmd.database_name);
+    } else {
+        db = system.getCurrentDatabase();
+    }
 
     if (!db) {
         std::cout << "No database selected\n";
@@ -83,7 +89,13 @@ void Executor::executeDropTable(const Command& cmd) {
 }
 
 void Executor::executeCreateTable(const Command& cmd) {
-    auto db = system.getCurrentDatabase();
+    Database* db = nullptr;
+
+    if (!cmd.database_name.empty()) {
+        db = system.getDatabase(cmd.database_name);
+    } else {
+        db = system.getCurrentDatabase();
+    }
 
     if (!db) {
         std::cout << "No database selected\n";
@@ -95,7 +107,13 @@ void Executor::executeCreateTable(const Command& cmd) {
 }
 
 void Executor::executeInsert(const Command& cmd) {
-    auto db = system.getCurrentDatabase();
+    Database* db = nullptr;
+
+    if (!cmd.database_name.empty()) {
+        db = system.getDatabase(cmd.database_name);
+    } else {
+        db = system.getCurrentDatabase();
+    }
 
     if (!db) {
         std::cout << "No database selected\n";
@@ -115,7 +133,13 @@ void Executor::executeInsert(const Command& cmd) {
 }
 
 void Executor::executeSelect(const Command& cmd) {
-    auto db = system.getCurrentDatabase();
+    Database* db = nullptr;
+
+    if (!cmd.database_name.empty()) {
+        db = system.getDatabase(cmd.database_name);
+    } else {
+        db = system.getCurrentDatabase();
+    }
 
     if (!db) {
         std::cout << "No database selected\n";
@@ -196,7 +220,14 @@ void Executor::executeSelect(const Command& cmd) {
 }
 
 void Executor::executeUpdate(const Command& cmd) {
-    auto db = system.getCurrentDatabase();
+    Database* db = nullptr;
+
+    if (!cmd.database_name.empty()) {
+        db = system.getDatabase(cmd.database_name);
+    } else {
+        db = system.getCurrentDatabase();
+    }
+
     if (!db) {
         std::cout << "No database selected\n";
         return;
@@ -231,7 +262,14 @@ void Executor::executeUpdate(const Command& cmd) {
 }
 
 void Executor::executeDelete(const Command& cmd) {
-    auto db = system.getCurrentDatabase();
+    Database* db = nullptr;
+
+    if (!cmd.database_name.empty()) {
+        db = system.getDatabase(cmd.database_name);
+    } else {
+        db = system.getCurrentDatabase();
+    }
+
     if (!db) {
         std::cout << "No database selected\n";
         return;
