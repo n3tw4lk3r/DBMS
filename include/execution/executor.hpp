@@ -29,9 +29,9 @@ private:
                          const std::vector<Value>& row,
                          const std::vector<ColumnSchema>& schema);
     int findColumnIndex(const std::vector<ColumnSchema>& schema, const std::string& name);
-    Value resolveOperand(const Operand& op, const std::vector<Value>& row,
+    Value resolveOperand(const Operand& operand, const std::vector<Value>& row,
                          const std::vector<ColumnSchema> schema);
-    bool compareValues(const Value& a, const Value& b, const std::string& op);
+    bool compareValues(const Value& a, const Value& b, const std::string& operator_str);
     bool betweenValues(const Value& v, const Value& l, const Value& r);
     bool likeValues(const Value& v, const Value& pattern);
 
