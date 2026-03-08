@@ -204,7 +204,7 @@ Command Parser::parseSelect(const std::vector<std::string>& tokens) {
     cmd.type = CommandType::kSelect;
 
     size_t pos = 1;
-    while (tokens[pos] != "FROM") {
+    while (pos < tokens.size() && tokens[pos] != "FROM") {
         if (tokens[pos] != ",") {
             SelectColumn col;
             col.name = tokens[pos];
