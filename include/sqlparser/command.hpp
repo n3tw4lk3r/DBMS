@@ -26,10 +26,17 @@ struct Assignment {
     Value value;
 };
 
+struct Operand {
+    bool is_column = false;
+    std::string column;
+    Value value;
+};
+
 struct Condition {
-    std::string left;
     std::string op;
-    Value right;
+    Operand left;
+    Operand right;
+    Operand second;
 };
 
 struct SelectColumn {

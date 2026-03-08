@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include "sqlparser/parser.hpp"
 
 namespace dbms {
@@ -26,7 +28,7 @@ std::vector<std::string> Parser::tokenize(const std::string& input) {
 
         if (ch == '"') {
             if (in_string) {
-                tokens.push_back(current);
+                tokens.push_back("\"" + current + "\"");
                 current.clear();
                 in_string = false;
             } else {
@@ -204,22 +206,28 @@ Command Parser::parseSelect(const std::vector<std::string>& tokens) {
     cmd.type = CommandType::kSelect;
 
     size_t pos = 1;
-    while (pos < tokens.size() && tokens[pos] != "FROM") {
-        if (tokens[pos] != ",") {
-            SelectColumn col;
-            col.name = tokens[pos];
+    if (tokens[pos] == "*") {
+        SelectColumn col;
+        col.name = "*";
+        cmd.select_columns.push_back(col);
+        pos += 2; // skip * and FROM
+    } else {
+        while (pos < tokens.size() && tokens[pos] != "FROM") {
+            if (tokens[pos] != ",") {
+                SelectColumn col;
+                col.name = tokens[pos];
 
-            if (pos + 2 < tokens.size() && tokens[pos + 1] == "AS") {
-                col.alias = tokens[pos + 2];
-                pos += 2;
+                if (pos + 2 < tokens.size() && tokens[pos + 1] == "AS") {
+                    col.alias = tokens[pos + 2];
+                    pos += 2;
+                }
+
+                cmd.select_columns.push_back(col);
             }
-
-            cmd.select_columns.push_back(col);
+            ++pos;
         }
         ++pos;
     }
-    ++pos;
-
     cmd.table_name = tokens[pos];
     ++pos;
     if (pos < tokens.size() && tokens[pos] == "WHERE") {
@@ -370,6 +378,10 @@ Value Parser::parseValue(const std::string& token) {
         return Value(std::stoi(token));
     }
 
+    if (token.size() >= 2 && token.front() == '"' && token.back() == '"') {
+        return Value(token.substr(1, token.size() - 2));
+    }
+
     return Value(token);
 }
 
@@ -378,18 +390,63 @@ std::vector<Condition> Parser::parseConditions(const std::vector<std::string>& t
     std::vector<Condition> conditions;
     while (pos < tokens.size()) {
         Condition cond;
+        cond.left = parseOperand(tokens[pos]);
+        ++pos;
 
-        cond.left = tokens[pos];
+        std::string op = tokens[pos];
         ++pos;
-        cond.op = tokens[pos];
-        ++pos;
-        cond.right = parseValue(tokens[pos]);
-        ++pos;
+
+        if (op == "BETWEEN") {
+            cond.op = "BETWEEN";
+            cond.right = parseOperand(tokens[pos]);
+            ++pos;
+
+            if (tokens[pos] != "AND") {
+                throw std::runtime_error("Expected AND");
+            }
+
+            ++pos;
+
+            cond.second = parseOperand(tokens[pos]);
+            ++pos;
+
+        } else if (op == "LIKE") {
+            cond.op = "LIKE";
+            cond.right = parseOperand(tokens[pos]);
+            ++pos;
+
+        } else {
+            cond.op = op;
+            cond.right = parseOperand(tokens[pos]);
+            ++pos;
+        }
 
         conditions.push_back(cond);
     }
 
     return conditions;
+}
+
+Operand Parser::parseOperand(const std::string& token) {
+    Operand op;
+
+    if (token.size() >= 2 &&
+        token.front() == '"' &&
+        token.back() == '"') {
+
+        op.value = Value(token.substr(1, token.size() - 2));
+        return op;
+    }
+
+    if (!token.empty() && std::isdigit(token[0])) {
+        op.value = Value(std::stoi(token));
+        return op;
+    }
+
+    op.is_column = true;
+    op.column = token;
+
+    return op;
 }
 
 } // namespace dbms

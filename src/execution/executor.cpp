@@ -1,5 +1,6 @@
-#include <iostream>
 #include <algorithm>
+#include <iostream>
+#include <regex>
 
 #include "execution/executor.hpp"
 
@@ -266,85 +267,137 @@ bool Executor::matchConditions(const std::vector<Condition>& conds,
     }
 
     for (const auto& cond : conds) {
-        int idx = -1;
+        Value left = resolveOperand(cond.left, row, schema);
+        Value right = resolveOperand(cond.right, row, schema);
 
-        for (size_t i = 0; i < schema.size(); ++i) {
-            if (schema[i].name == cond.left) {
-                idx = i;
-                break;
+        if (cond.op == "BETWEEN") {
+            Value second = resolveOperand(cond.second, row, schema);
+            if (!betweenValues(left, right, second)) {
+                return false;
             }
+            continue;
         }
 
-        if (idx == -1) {
+        if (cond.op == "LIKE") {
+            if (!likeValues(left, right)) {
+                return false;
+            }
+            continue;
+        }
+
+        if (!compareValues(left, right, cond.op)) {
             return false;
-        }
-
-        const auto& v = row[idx];
-        const auto& r = cond.right;
-
-        if (v.getType() != r.getType()) {
-            return false;
-        }
-
-        if (v.getType() == Value::Type::kInt) {
-            int a = v.asInt();
-            int b = r.asInt();
-
-            if (cond.op == "==" && !(a == b)) {
-                return false;
-            }
-
-            if (cond.op == "!=" && !(a != b)) {
-                return false;
-            }
-
-            if (cond.op == "<"  && !(a < b)) {
-                return false;
-            }
-
-            if (cond.op == ">"  && !(a > b)) {
-                return false;
-            }
-
-            if (cond.op == "<=" && !(a <= b)) {
-                return false;
-            }
-
-            if (cond.op == ">=" && !(a >= b)) {
-                return false;
-            }
-
-        } else if (v.getType() == Value::Type::kString) {
-            const auto& a = v.asString();
-            const auto& b = r.asString();
-
-            if (cond.op == "==" && !(a == b)) {
-                return false;
-            }
-
-            if (cond.op == "!=" && !(a != b)) {
-                return false;
-            }
-
-            if (cond.op == "<"  && !(a < b)) {
-                return false;
-            }
-
-            if (cond.op == ">"  && !(a > b)) {
-                return false;
-            }
-
-            if (cond.op == "<=" && !(a <= b)) {
-                return false;
-            }
-
-            if (cond.op == ">=" && !(a >= b)) {
-                return false;
-            }
         }
     }
 
     return true;
+}
+
+
+int Executor::findColumnIndex(const std::vector<ColumnSchema>& schema, const std::string& name) {
+    for (size_t i = 0; i < schema.size(); ++i) {
+            if (schema[i].name == name) {
+                return static_cast<int>(i);
+            }
+        }
+    return -1;
+}
+
+Value Executor::resolveOperand(const Operand& op, const std::vector<Value>& row,
+                     const std::vector<ColumnSchema> schema) {
+    if (op.is_column) {
+        int idx = findColumnIndex(schema, op.column);
+        if (idx < 0 || idx >= static_cast<int>(row.size())) {
+            return Value();
+        }
+        return row[idx];
+    }
+    return op.value;
+}
+
+bool Executor::compareValues(const Value& a, const Value& b, const std::string& op) {
+    if (a.getType() != b.getType()) {
+        return false;
+    }
+
+    if (a.getType() == Value::Type::kInt) {
+        int x = a.asInt();
+        int y = b.asInt();
+
+        if (op == "==") {
+            return x == y;
+        }
+        if (op == "!=") {
+            return x != y;
+        }
+        if (op == "<") {
+            return x < y;
+        }
+        if (op == ">") {
+            return x > y;
+        }
+        if (op == "<=") {
+            return x <= y;
+        }
+        if (op == ">=") {
+            return x >= y;
+        }
+    } else if (a.getType() == Value::Type::kString) {
+        const auto& x = a.asString();
+        const auto& y = b.asString();
+
+        if (op == "==") {
+            return x == y;
+        }
+        if (op == "!=") {
+            return x != y;
+        }
+        if (op == "<") {
+            return x < y;
+        }
+        if (op == ">") {
+            return x > y;
+        }
+        if (op == "<=") {
+            return x <= y;
+        }
+        if (op == ">=") {
+            return x >= y;
+        }
+    }
+
+    return false;
+}
+
+bool Executor::betweenValues(const Value& v, const Value& l, const Value& r) {
+    if (v.getType() != l.getType() || v.getType() != r.getType()) {
+        return false;
+    }
+
+    if (v.getType() == Value::Type::kInt) {
+        int x = v.asInt();
+        return l.asInt() <= x && x < r.asInt();
+
+    } else if (v.getType() == Value::Type::kString) {
+        const auto& x = v.asString();
+        return l.asString() <= x && x < r.asString();
+    }
+
+    return false;
+}
+
+bool Executor::likeValues(const Value& v, const Value& pattern) {
+    if (v.getType() != Value::Type::kString ||
+        pattern.getType() != Value::Type::kString) {
+        return false;
+    }
+
+    try {
+        std::regex re(pattern.asString());
+        return std::regex_match(v.asString(), re);
+    } catch (...) {
+        return false;
+    }
 }
 
 } // namespace dbms

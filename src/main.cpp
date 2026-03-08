@@ -1,3 +1,4 @@
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -20,7 +21,6 @@ int main() {
     std::cout << "Enter 'exit' to exit." << std::endl;
 
     while (!should_exit) {
-
         if (!std::getline(std::cin, line)) {
             should_exit = true;
             break;
@@ -33,8 +33,12 @@ int main() {
 
         auto queries = buffer.append(line);
         for (const auto& query : queries) {
-            auto cmd = parser.parse(query);
-            executor.execute(cmd);
+            try {
+                auto cmd = parser.parse(query);
+                executor.execute(cmd);
+            } catch (const std::exception& e) {
+                std::cout << "An error occured: " << e.what() << '\n';
+            }
         }
     }
 }
