@@ -25,6 +25,27 @@ public:
     const std::vector<ColumnSchema>& getSchema() const;
 
 private:
+    void validateRow(const std::vector<Value>& values) const;
+
+    void validateColumnCount(
+        const std::vector<Value>& values
+    ) const;
+
+    void validateColumnType(
+        const Value& value,
+        const ColumnSchema& column
+    ) const;
+
+    void validateNotNull(
+        const Value& value,
+        const ColumnSchema& column
+    ) const;
+
+    void validateUniqueConstraints(
+        const std::vector<Value>& values
+    ) const;
+
+private:
     RowId next_row_id = 1;
 
     std::string name;
@@ -34,3 +55,4 @@ private:
 };
 
 } // namespace dbms
+

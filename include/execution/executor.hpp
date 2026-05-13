@@ -58,18 +58,6 @@ private:
         const std::vector<ColumnSchema>& schema
     );
 
-    bool compareValues(
-        const Value& a,
-        const Value& b,
-        const std::string& operator_str
-    );
-
-    bool betweenValues(
-        const Value& value,
-        const Value& left,
-        const Value& right
-    );
-
     bool likeValues(
         const Value& value,
         const Value& pattern
@@ -80,3 +68,4 @@ private:
 };
 
 } // namespace dbms
+
