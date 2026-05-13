@@ -10,9 +10,7 @@ const Value& IndexedValue::getValue() const {
     return value;
 }
 
-bool IndexedValue::operator<(
-    const IndexedValue& other
-) const {
+bool IndexedValue::operator<(const IndexedValue& other) const {
     if (value.getType() != other.value.getType()) {
         return false;
     }
@@ -28,15 +26,11 @@ bool IndexedValue::operator<(
     return false;
 }
 
-bool IndexedValue::operator>(
-    const IndexedValue& other
-) const {
+bool IndexedValue::operator>(const IndexedValue& other) const {
     return other < *this;
 }
 
-bool IndexedValue::operator==(
-    const IndexedValue& other
-) const {
+bool IndexedValue::operator==(const IndexedValue& other) const {
     if (value.getType() != other.value.getType()) {
         return false;
     }

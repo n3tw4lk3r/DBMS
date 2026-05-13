@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "storage/indexed_value.hpp"
@@ -19,7 +20,7 @@ public:
     bool is_leaf;
 
     std::vector<BTreeEntry> entries;
-    std::vector<BTreeNode*> children;
+    std::vector<std::unique_ptr<BTreeNode>> children;
 };
 
 } // namespace dbms

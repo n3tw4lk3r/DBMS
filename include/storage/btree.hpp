@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "storage/btree_node.hpp"
 
 namespace dbms {
@@ -29,13 +31,14 @@ private:
     );
 
     const BTreeEntry* search(
-        BTreeNode* node,
+        const BTreeNode* node,
         const IndexedValue& key
     ) const;
 
 private:
     size_t min_degree;
-    BTreeNode* root;
+
+    std::unique_ptr<BTreeNode> root;
 };
 
 } // namespace dbms
