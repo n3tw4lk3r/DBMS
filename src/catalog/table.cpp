@@ -12,15 +12,23 @@ const std::string Table::getName() const {
     return name;
 }
 
-void Table::insertRow(const std::vector<Value>& row) {
+RowId Table::insertRow(const std::vector<Value>& values) {
+    Row row;
+
+    row.id = next_row_id;
+    ++next_row_id;
+    row.values = values;
+
     rows.push_back(row);
+
+    return row.id;
 }
 
-const std::vector<std::vector<Value>>& Table::getRows() const {
+const std::vector<Row>& Table::getRows() const {
     return rows;
 }
 
-std::vector<std::vector<Value>>& Table::getRowsMutable() {
+std::vector<Row>& Table::getRowsMutable() {
     return rows;
 }
 
@@ -29,3 +37,4 @@ const std::vector<ColumnSchema>& Table::getSchema() const {
 }
 
 } // namespace dbms
+

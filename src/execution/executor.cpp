@@ -1,6 +1,6 @@
-#include <algorithm>
 #include <iostream>
 #include <regex>
+#include <stdexcept>
 
 #include "execution/executor.hpp"
 
@@ -15,253 +15,228 @@ void Executor::execute(const Command& cmd) {
 
     case CommandType::kCreateDatabase:
         executeCreateDatabase(cmd);
-        break;
-
-    case CommandType::kUseDatabase:
-        executeUseDatabase(cmd);
-        break;
-
-    case CommandType::kCreateTable:
-        executeCreateTable(cmd);
-        break;
+        return;
 
     case CommandType::kDropDatabase:
         executeDropDatabase(cmd);
-        break;
+        return;
+
+    case CommandType::kUseDatabase:
+        executeUseDatabase(cmd);
+        return;
+
+    case CommandType::kCreateTable:
+        executeCreateTable(cmd);
+        return;
 
     case CommandType::kDropTable:
         executeDropTable(cmd);
-        break;
+        return;
 
     case CommandType::kInsert:
         executeInsert(cmd);
-        break;
+        return;
 
     case CommandType::kSelect:
         executeSelect(cmd);
-        break;
+        return;
 
     case CommandType::kUpdate:
         executeUpdate(cmd);
-        break;
+        return;
 
     case CommandType::kDelete:
         executeDelete(cmd);
-        break;
+        return;
 
     default:
-        std::cout << "Unknown command\n";
-        break;
+        throw std::runtime_error("Unknown command");
     }
 }
 
 void Executor::executeCreateDatabase(const Command& cmd) {
     system.createDatabase(cmd.database_name);
-    std::cout << "Database " << cmd.database_name << " created\n";
+
+    std::cout
+        << "Database "
+        << cmd.database_name
+        << " created\n";
+}
+
+void Executor::executeDropDatabase(const Command& cmd) {
+    std::cout
+        << "Database dropped: "
+        << cmd.database_name
+        << "\n";
 }
 
 void Executor::executeUseDatabase(const Command& cmd) {
     system.useDatabase(cmd.database_name);
-    std::cout << "Using database " << cmd.database_name << "\n";
-}
 
-void Executor::executeDropDatabase(const Command& cmd) {
-    // nothing interesting here so far
-    std::cout << "Database dropped: " << cmd.database_name << "\n";
-}
-
-void Executor::executeDropTable(const Command& cmd) {
-    // also nothing interesting here yet
-    Database* db = nullptr;
-
-    if (!cmd.database_name.empty()) {
-        db = system.getDatabase(cmd.database_name);
-    } else {
-        db = system.getCurrentDatabase();
-    }
-
-    if (!db) {
-        std::cout << "No database selected\n";
-        return;
-    }
-
-    std::cout << "Table dropped: " << cmd.table_name << "\n";
+    std::cout
+        << "Using database "
+        << cmd.database_name
+        << "\n";
 }
 
 void Executor::executeCreateTable(const Command& cmd) {
-    Database* db = nullptr;
-
-    if (!cmd.database_name.empty()) {
-        db = system.getDatabase(cmd.database_name);
-    } else {
-        db = system.getCurrentDatabase();
-    }
-
-    if (!db) {
-        std::cout << "No database selected\n";
-        return;
-    }
+    Database* db = resolveDatabase(cmd);
 
     db->createTable(cmd.table_name, cmd.columns);
-    std::cout << "Table " << cmd.table_name << " created\n";
+
+    std::cout
+        << "Table "
+        << cmd.table_name
+        << " created\n";
+}
+
+void Executor::executeDropTable(const Command& cmd) {
+    resolveDatabase(cmd);
+
+    std::cout
+        << "Table dropped: "
+        << cmd.table_name
+        << "\n";
 }
 
 void Executor::executeInsert(const Command& cmd) {
-    Database* db = nullptr;
+    Database* db = resolveDatabase(cmd);
 
-    if (!cmd.database_name.empty()) {
-        db = system.getDatabase(cmd.database_name);
-    } else {
-        db = system.getCurrentDatabase();
-    }
+    Table* table = db->getTable(cmd.table_name);
 
-    if (!db) {
-        std::cout << "No database selected\n";
-        return;
-    }
-
-    auto table = db->getTable(cmd.table_name);
     if (!table) {
-        std::cout << "Table not found\n";
-        return;
+        throw std::runtime_error("Table not found");
     }
 
-    for (const auto& row : cmd.values) {
-        table->insertRow(row);
+    for (const auto& values : cmd.values) {
+        table->insertRow(values);
     }
-    std::cout << cmd.values.size() << " rows inserted\n";
+
+    std::cout
+        << cmd.values.size()
+        << " rows inserted\n";
 }
 
 void Executor::executeSelect(const Command& cmd) {
-    Database* db = nullptr;
+    Database* db = resolveDatabase(cmd);
 
-    if (!cmd.database_name.empty()) {
-        db = system.getDatabase(cmd.database_name);
-    } else {
-        db = system.getCurrentDatabase();
-    }
-
-    if (!db) {
-        std::cout << "No database selected\n";
-        return;
-    }
-
-    auto table = db->getTable(cmd.table_name);
+    Table* table = db->getTable(cmd.table_name);
 
     if (!table) {
-        std::cout << "Table not found\n";
-        return;
+        throw std::runtime_error("Table not found");
     }
 
     const auto& rows = table->getRows();
     const auto& schema = table->getSchema();
 
-    if (rows.empty()) {
-        std::cout << "(empty)\n";
-        return;
-    }
+    bool select_all =
+        cmd.select_columns.size() == 1 &&
+        cmd.select_columns[0].name == "*";
 
-    bool select_all = cmd.select_columns.size() == 1 &&
-                      cmd.select_columns[0].name == "*";
+    bool has_rows = false;
+
     for (const auto& row : rows) {
+        if (row.deleted) {
+            continue;
+        }
+
         if (!matchConditions(cmd.conditions, row, schema)) {
             continue;
         }
 
+        has_rows = true;
+
         if (select_all) {
-            for (size_t i = 0; i < row.size(); ++i) {
-                const auto& v = row[i];
-                if (v.getType() == Value::Type::kInt) {
-                    std::cout << v.asInt();
-                } else if (v.getType() == Value::Type::kString) {
-                    std::cout << v.asString();
-                } else {
-                    std::cout << "NULL";
-                }
-
-                if (i + 1 != row.size()) {
-                    std::cout << ", ";
-                }
-            }
-
+            printFullRow(row);
         } else {
-            for (size_t c = 0; c < cmd.select_columns.size(); ++c) {
-                const auto& col = cmd.select_columns[c];
-                int idx = -1;
-                for (size_t i = 0; i < schema.size(); ++i) {
-                    if (schema[i].name == col.name) {
-                        idx = i;
-                        break;
-                    }
-                }
-
-                if (idx == -1) {
-                    std::cout << "Unknown column\n";
-                    return;
-                }
-
-                const auto& v = row[idx];
-                if (v.getType() == Value::Type::kInt) {
-                    std::cout << v.asInt();
-                } else if (v.getType() == Value::Type::kString) {
-                    std::cout << v.asString();
-                } else {
-                    std::cout << "NULL";
-                }
-
-                if (c + 1 != cmd.select_columns.size()) {
-                    std::cout << ", ";
-                }
-            }
+            printSelectedColumns(row, schema, cmd.select_columns);
         }
 
-        std::cout << "\n";
+        std::cout << '\n';
+    }
+
+    if (!has_rows) {
+        std::cout << "(empty)\n";
     }
 }
 
 void Executor::executeUpdate(const Command& cmd) {
-    Database* db = nullptr;
+    Database* db = resolveDatabase(cmd);
 
-    if (!cmd.database_name.empty()) {
-        db = system.getDatabase(cmd.database_name);
-    } else {
-        db = system.getCurrentDatabase();
-    }
+    Table* table = db->getTable(cmd.table_name);
 
-    if (!db) {
-        std::cout << "No database selected\n";
-        return;
-    }
-
-    auto table = db->getTable(cmd.table_name);
     if (!table) {
-        std::cout << "Table not found\n";
-        return;
+        throw std::runtime_error("Table not found");
     }
 
     auto& rows = table->getRowsMutable();
     const auto& schema = table->getSchema();
-    int updated = 0;
+
+    size_t updated = 0;
+
     for (auto& row : rows) {
+        if (row.deleted) {
+            continue;
+        }
+
         if (!matchConditions(cmd.conditions, row, schema)) {
             continue;
         }
 
         for (const auto& assignment : cmd.assignments) {
-            for (size_t i = 0; i < schema.size(); ++i) {
-                if (schema[i].name == assignment.column) {
-                    row[i] = assignment.value;
-                }
+            int column_index =
+                findColumnIndex(schema, assignment.column);
+
+            if (column_index < 0) {
+                throw std::runtime_error(
+                    "Unknown column: " + assignment.column);
             }
+
+            row.values[column_index] = assignment.value;
         }
 
         ++updated;
     }
 
-    std::cout << updated << " rows updated\n";
+    std::cout
+        << updated
+        << " rows updated\n";
 }
 
 void Executor::executeDelete(const Command& cmd) {
+    Database* db = resolveDatabase(cmd);
+
+    Table* table = db->getTable(cmd.table_name);
+
+    if (!table) {
+        throw std::runtime_error("Table not found");
+    }
+
+    auto& rows = table->getRowsMutable();
+    const auto& schema = table->getSchema();
+
+    size_t deleted = 0;
+
+    for (auto& row : rows) {
+        if (row.deleted) {
+            continue;
+        }
+
+        if (!matchConditions(cmd.conditions, row, schema)) {
+            continue;
+        }
+
+        row.deleted = true;
+
+        ++deleted;
+    }
+
+    std::cout
+        << deleted
+        << " rows deleted\n";
+}
+
+Database* Executor::resolveDatabase(const Command& cmd) {
     Database* db = nullptr;
 
     if (!cmd.database_name.empty()) {
@@ -271,48 +246,87 @@ void Executor::executeDelete(const Command& cmd) {
     }
 
     if (!db) {
-        std::cout << "No database selected\n";
-        return;
+        throw std::runtime_error("No database selected");
     }
 
-    auto table = db->getTable(cmd.table_name);
-    if (!table) {
-        std::cout << "Table not found\n";
-        return;
-    }
-
-    auto& rows = table->getRowsMutable();
-    const auto& schema = table->getSchema();
-    size_t before = rows.size();
-
-    rows.erase(
-        std::remove_if(
-            rows.begin(),
-            rows.end(),
-            [&](const auto& row) {
-                return matchConditions(cmd.conditions, row, schema);
-            }),
-        rows.end());
-
-    std::cout << before - rows.size() << " rows deleted\n";
+    return db;
 }
 
-bool Executor::matchConditions(const std::vector<Condition>& conditions,
-                               const std::vector<Value>& row,
-                               const std::vector<ColumnSchema>& schema) {
+void Executor::printFullRow(const Row& row) {
+    for (size_t i = 0; i < row.values.size(); ++i) {
+        printValue(row.values[i]);
+
+        if (i + 1 != row.values.size()) {
+            std::cout << ", ";
+        }
+    }
+}
+
+void Executor::printSelectedColumns(
+    const Row& row,
+    const std::vector<ColumnSchema>& schema,
+    const std::vector<SelectColumn>& columns
+) {
+    for (size_t i = 0; i < columns.size(); ++i) {
+        int column_index =
+            findColumnIndex(schema, columns[i].name);
+
+        if (column_index < 0) {
+            throw std::runtime_error(
+                "Unknown column: " + columns[i].name);
+        }
+
+        printValue(row.values[column_index]);
+
+        if (i + 1 != columns.size()) {
+            std::cout << ", ";
+        }
+    }
+}
+
+void Executor::printValue(const Value& value) {
+    switch (value.getType()) {
+
+    case Value::Type::kInt:
+        std::cout << value.asInt();
+        return;
+
+    case Value::Type::kString:
+        std::cout << value.asString();
+        return;
+
+    case Value::Type::kNull:
+        std::cout << "NULL";
+        return;
+    }
+}
+
+bool Executor::matchConditions(
+    const std::vector<Condition>& conditions,
+    const Row& row,
+    const std::vector<ColumnSchema>& schema
+) {
     if (conditions.empty()) {
         return true;
     }
 
     for (const auto& condition : conditions) {
-        Value left = resolveOperand(condition.lhs, row, schema);
-        Value right = resolveOperand(condition.rhs, row, schema);
+        Value left =
+            resolveOperand(condition.lhs, row, schema);
+
+        Value right =
+            resolveOperand(condition.rhs, row, schema);
 
         if (condition.operator_type == "BETWEEN") {
-            Value second = resolveOperand(condition.range_end, row, schema);
-            if (!betweenValues(left, right, second)) {
+            Value range_end =
+                resolveOperand(condition.range_end,
+                               row,
+                               schema);
+
+            if (!betweenValues(left, right, range_end)) {
                 return false;
             }
+
             continue;
         }
 
@@ -320,10 +334,13 @@ bool Executor::matchConditions(const std::vector<Condition>& conditions,
             if (!likeValues(left, right)) {
                 return false;
             }
+
             continue;
         }
 
-        if (!compareValues(left, right, condition.operator_type)) {
+        if (!compareValues(left,
+                           right,
+                           condition.operator_type)) {
             return false;
         }
     }
@@ -331,29 +348,44 @@ bool Executor::matchConditions(const std::vector<Condition>& conditions,
     return true;
 }
 
-
-int Executor::findColumnIndex(const std::vector<ColumnSchema>& schema, const std::string& name) {
+int Executor::findColumnIndex(
+    const std::vector<ColumnSchema>& schema,
+    const std::string& name
+) {
     for (size_t i = 0; i < schema.size(); ++i) {
-            if (schema[i].name == name) {
-                return static_cast<int>(i);
-            }
+        if (schema[i].name == name) {
+            return static_cast<int>(i);
         }
+    }
+
     return -1;
 }
 
-Value Executor::resolveOperand(const Operand& operand, const std::vector<Value>& row,
-                               const std::vector<ColumnSchema> schema) {
-    if (operand.is_column) {
-        int idx = findColumnIndex(schema, operand.column);
-        if (idx < 0 || idx >= static_cast<int>(row.size())) {
-            return Value();
-        }
-        return row[idx];
+Value Executor::resolveOperand(
+    const Operand& operand,
+    const Row& row,
+    const std::vector<ColumnSchema>& schema
+) {
+    if (!operand.is_column) {
+        return operand.value;
     }
-    return operand.value;
+
+    int column_index =
+        findColumnIndex(schema, operand.column);
+
+    if (column_index < 0 ||
+        column_index >= static_cast<int>(row.values.size())) {
+        return Value();
+    }
+
+    return row.values[column_index];
 }
 
-bool Executor::compareValues(const Value& a, const Value& b, const std::string& operator_str) {
+bool Executor::compareValues(
+    const Value& a,
+    const Value& b,
+    const std::string& operator_str
+) {
     if (a.getType() != b.getType()) {
         return false;
     }
@@ -365,40 +397,52 @@ bool Executor::compareValues(const Value& a, const Value& b, const std::string& 
         if (operator_str == "==") {
             return x == y;
         }
+
         if (operator_str == "!=") {
             return x != y;
         }
+
         if (operator_str == "<") {
             return x < y;
         }
+
         if (operator_str == ">") {
             return x > y;
         }
+
         if (operator_str == "<=") {
             return x <= y;
         }
+
         if (operator_str == ">=") {
             return x >= y;
         }
-    } else if (a.getType() == Value::Type::kString) {
+    }
+
+    if (a.getType() == Value::Type::kString) {
         const auto& x = a.asString();
         const auto& y = b.asString();
 
         if (operator_str == "==") {
             return x == y;
         }
+
         if (operator_str == "!=") {
             return x != y;
         }
+
         if (operator_str == "<") {
             return x < y;
         }
+
         if (operator_str == ">") {
             return x > y;
         }
+
         if (operator_str == "<=") {
             return x <= y;
         }
+
         if (operator_str == ">=") {
             return x >= y;
         }
@@ -407,32 +451,48 @@ bool Executor::compareValues(const Value& a, const Value& b, const std::string& 
     return false;
 }
 
-bool Executor::betweenValues(const Value& v, const Value& l, const Value& r) {
-    if (v.getType() != l.getType() || v.getType() != r.getType()) {
+bool Executor::betweenValues(
+    const Value& value,
+    const Value& left,
+    const Value& right
+) {
+    if (value.getType() != left.getType() ||
+        value.getType() != right.getType()) {
         return false;
     }
 
-    if (v.getType() == Value::Type::kInt) {
-        int x = v.asInt();
-        return l.asInt() <= x && x < r.asInt();
+    if (value.getType() == Value::Type::kInt) {
+        int x = value.asInt();
 
-    } else if (v.getType() == Value::Type::kString) {
-        const auto& x = v.asString();
-        return l.asString() <= x && x < r.asString();
+        return left.asInt() <= x &&
+               x < right.asInt();
+    }
+
+    if (value.getType() == Value::Type::kString) {
+        const auto& x = value.asString();
+
+        return left.asString() <= x &&
+               x < right.asString();
     }
 
     return false;
 }
 
-bool Executor::likeValues(const Value& v, const Value& pattern) {
-    if (v.getType() != Value::Type::kString ||
+bool Executor::likeValues(
+    const Value& value,
+    const Value& pattern
+) {
+    if (value.getType() != Value::Type::kString ||
         pattern.getType() != Value::Type::kString) {
         return false;
     }
 
     try {
-        std::regex re(pattern.asString());
-        return std::regex_match(v.asString(), re);
+        std::regex regex(pattern.asString());
+
+        return std::regex_match(
+            value.asString(),
+            regex);
     } catch (...) {
         return false;
     }
