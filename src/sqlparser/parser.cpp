@@ -448,10 +448,10 @@ Operand Parser::parseOperand(const std::string& token) {
 }
 
 void Parser::parseTableName(const std::string& fullName, std::string& database_name, std::string& table_name) {
-    size_t dotPos = fullName.find('.');
-    if (dotPos != std::string::npos) {
-        database_name = fullName.substr(0, dotPos);
-        table_name = fullName.substr(dotPos + 1);
+    size_t dot_pos = fullName.find('.');
+    if (dot_pos != std::string::npos) {
+        database_name = fullName.substr(0, dot_pos);
+        table_name = fullName.substr(dot_pos + 1);
     } else {
         table_name = fullName;
         database_name.clear();
