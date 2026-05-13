@@ -27,10 +27,16 @@ private:
     Command parseDelete(const std::vector<std::string>& tokens);
 
     Value parseValue(const std::string& token);
-    std::vector<Condition> parseConditions(const std::vector<std::string>& tokens,
-                                           size_t pos);
+    std::vector<Condition> parseConditions(
+        const std::vector<std::string>& tokens,
+        size_t pos
+    );
     Operand parseOperand(const std::string& token);
-    void parseTableName(const std::string& fullName, std::string& database_name, std::string& table_name);
+    void parseTableName(
+        const std::string& fullName,
+        std::string& database_name,
+        std::string& table_name
+    );
 };
 
 } // namespace dbms

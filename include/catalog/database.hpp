@@ -12,8 +12,10 @@ class Database {
 public:
     explicit Database(const std::string& name);
     const std::string getName() const;
-    void createTable(const std::string& table_name,
-                     const std::vector<ColumnSchema>& schema);
+    void createTable(
+        const std::string& table_name,
+        const std::vector<ColumnSchema>& schema
+    );
     Table* getTable(const std::string& table_name);
 
 private:

@@ -2,8 +2,10 @@
 
 namespace dbms {
 
-Table::Table(const std::string& name,
-             const std::vector<ColumnSchema>& schema) :
+Table::Table(
+    const std::string& name,
+    const std::vector<ColumnSchema>& schema
+) :
     name(name),
     schema(schema)
 {}

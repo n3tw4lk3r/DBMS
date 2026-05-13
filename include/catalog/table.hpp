@@ -10,8 +10,10 @@ namespace dbms {
 
 class Table {
 public:
-    Table(const std::string& name,
-          const std::vector<ColumnSchema>& schema);
+    Table(
+        const std::string& name,
+        const std::vector<ColumnSchema>& schema
+    );
 
     const std::string getName() const;
 

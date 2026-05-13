@@ -10,8 +10,10 @@ const std::string Database::getName() const {
     return name;
 }
 
-void Database::createTable(const std::string& table_name,
-                           const std::vector<ColumnSchema>& schema) {
+void Database::createTable(
+    const std::string& table_name,
+    const std::vector<ColumnSchema>& schema
+) {
     tables[table_name] = std::make_unique<Table>(table_name, schema);
 }
 

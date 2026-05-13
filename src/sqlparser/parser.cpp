@@ -386,8 +386,10 @@ Value Parser::parseValue(const std::string& token) {
     return Value(token);
 }
 
-std::vector<Condition> Parser::parseConditions(const std::vector<std::string>& tokens,
-                                               size_t pos) {
+std::vector<Condition> Parser::parseConditions(
+    const std::vector<std::string>& tokens,
+    size_t pos
+) {
     std::vector<Condition> conditions;
     while (pos < tokens.size()) {
         Condition condition;
@@ -447,7 +449,11 @@ Operand Parser::parseOperand(const std::string& token) {
     return op;
 }
 
-void Parser::parseTableName(const std::string& fullName, std::string& database_name, std::string& table_name) {
+void Parser::parseTableName(
+    const std::string& fullName,
+    std::string& database_name,
+    std::string& table_name
+) {
     size_t dot_pos = fullName.find('.');
     if (dot_pos != std::string::npos) {
         database_name = fullName.substr(0, dot_pos);
