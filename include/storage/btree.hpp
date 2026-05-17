@@ -10,30 +10,32 @@ class BTree {
 public:
     explicit BTree(size_t min_degree = 3);
 
-    void insert(
-        const IndexedValue& key,
-        RowId row_id
-    );
-
+    void insert(const IndexedValue& key, RowId row_id);
+    bool erase(const IndexedValue& key);
     bool contains(const IndexedValue& key) const;
-
     RowId find(const IndexedValue& key) const;
 
 private:
-    void insertNonFull(
-        BTreeNode* node,
-        const BTreeEntry& entry
-    );
+    void insertNonFull(BTreeNode* node, const BTreeEntry& entry);
+    void splitChild(BTreeNode* parent, size_t child_index);
 
-    void splitChild(
-        BTreeNode* parent,
-        size_t child_index
-    );
+    BTreeEntry* search(BTreeNode* node, const IndexedValue& key) const;
 
-    const BTreeEntry* search(
-        const BTreeNode* node,
-        const IndexedValue& key
-    ) const;
+    void eraseInternal(BTreeNode* node, const IndexedValue& key);
+    void eraseFromLeaf(BTreeNode* node, size_t index);
+    void eraseFromInternal(BTreeNode* node, size_t index);
+
+    BTreeEntry getPredecessor(BTreeNode* node);
+    BTreeEntry getSuccessor(BTreeNode* node);
+
+    void fillChild(BTreeNode* node, size_t child_index);
+
+    void borrowFromPrevious(BTreeNode* node, size_t child_index);
+    void borrowFromNext(BTreeNode* node, size_t child_index);
+
+    void mergeChildren(BTreeNode* node, size_t child_index);
+
+    size_t findKeyIndex(BTreeNode* node, const IndexedValue& key) const;
 
 private:
     size_t min_degree;
