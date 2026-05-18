@@ -78,6 +78,13 @@ private:
         const Command& cmd,
         const std::vector<ColumnSchema>& schema
     );
+    
+    std::vector<Value> buildInsertRow(
+        const Table& table,
+        const Command& cmd,
+        const std::vector<Value>& values
+    );
+
 
 private:
     System& system;

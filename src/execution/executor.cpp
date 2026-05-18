@@ -111,7 +111,7 @@ void Executor::executeInsert(const Command& cmd) {
     }
 
     for (const auto& values : cmd.values) {
-        table->insertRow(values);
+        table->insertRow(buildInsertRow(*table, cmd, values));
     }
 
     std::cout
@@ -491,6 +491,44 @@ Row* Executor::tryFindIndexedRow(
         condition.lhs.column,
         condition.rhs.value
     );
+}
+
+std::vector<Value> Executor::buildInsertRow(
+    const Table& table,
+    const Command& cmd,
+    const std::vector<Value>& values
+) {
+    const auto& schema = table.getSchema();
+
+    if (cmd.column_names.empty()) {
+        return values;
+    }
+
+    if (cmd.column_names.size() != values.size()) {
+        throw std::runtime_error(
+            "Column count does not match value count"
+        );
+    }
+
+    std::vector<Value> result(schema.size(), Value());
+
+    for (size_t i = 0; i < cmd.column_names.size(); ++i) {
+        int column_index = findColumnIndex(
+            schema,
+            cmd.column_names[i]
+        );
+
+        if (column_index < 0) {
+            throw std::runtime_error(
+                "Unknown column: " +
+                cmd.column_names[i]
+            );
+        }
+
+        result[column_index] = values[i];
+    }
+
+    return result;
 }
 
 } // namespace dbms
