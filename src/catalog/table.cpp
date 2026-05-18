@@ -110,6 +110,39 @@ Row* Table::findRowById(RowId row_id) {
     return it->second;
 }
 
+void Table::updateRow(
+    Row& row,
+    const std::vector<Assignment>& assignments
+) {
+    std::vector<Value> updated_values = row.values;
+
+    for (const auto& assignment : assignments) {
+        int column_index = findColumnIndex(assignment.column);
+
+        if (column_index < 0) {
+            throw DatabaseError(
+                "Unknown column: " +
+                assignment.column
+            );
+        }
+
+        updated_values[column_index] = assignment.value;
+    }
+
+    validateRow(updated_values);
+    eraseFromIndexes(row);
+
+    row.values = updated_values;
+
+    insertIntoIndexes(row);
+}
+
+void Table::deleteRow(Row& row) {
+    eraseFromIndexes(row);
+    row.deleted = true;
+}
+
+
 void Table::validateRow(const std::vector<Value>& values) const {
     validateColumnCount(values);
 
@@ -217,6 +250,18 @@ void Table::insertIntoIndexes(const Row& row) {
             IndexedValue(row.values[i]),
             row.id
         );
+    }
+}
+
+void Table::eraseFromIndexes(const Row& row) {
+    for (size_t i = 0; i < schema.size(); ++i) {
+        const auto& column = schema[i];
+
+        if (!column.indexed) {
+            continue;
+        }
+
+        indexes[column.name].erase(IndexedValue(row.values[i]));
     }
 }
 

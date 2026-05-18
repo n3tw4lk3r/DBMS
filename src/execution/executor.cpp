@@ -204,22 +204,7 @@ void Executor::executeUpdate(const Command& cmd) {
             continue;
         }
 
-        for (const auto& assignment : cmd.assignments) {
-            int column_index = findColumnIndex(
-                schema,
-                assignment.column
-            );
-
-            if (column_index < 0) {
-                throw std::runtime_error(
-                    "Unknown column: " +
-                    assignment.column
-                );
-            }
-
-            row.values[column_index] = assignment.value;
-        }
-
+        table->updateRow(row, cmd.assignments);
         ++updated;
     }
 
@@ -241,7 +226,6 @@ void Executor::executeDelete(const Command& cmd) {
     const auto& schema = table->getSchema();
 
     size_t deleted = 0;
-
     for (const auto& row_ptr : rows) {
         Row& row = *row_ptr;
 
@@ -253,8 +237,7 @@ void Executor::executeDelete(const Command& cmd) {
             continue;
         }
 
-        row.deleted = true;
-
+        table->deleteRow(row);
         ++deleted;
     }
 

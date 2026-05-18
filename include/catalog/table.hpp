@@ -8,6 +8,7 @@
 #include "common/value.hpp"
 #include "storage/btree.hpp"
 #include "storage/row.hpp"
+#include "sqlparser/command.hpp"
 
 namespace dbms {
 
@@ -41,6 +42,13 @@ public:
 
     Row* findRowById(RowId row_id);
 
+    void updateRow(
+        Row& row,
+        const std::vector<Assignment>& assignments
+    );
+
+    void deleteRow(Row& row);
+
 private:
     void validateRow(const std::vector<Value>& values) const;
 
@@ -65,6 +73,7 @@ private:
     int findColumnIndex(const std::string& column_name) const;
 
     void insertIntoIndexes(const Row& row);
+    void eraseFromIndexes(const Row& row);
 
 private:
     RowId next_row_id = 1;
